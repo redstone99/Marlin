@@ -21,6 +21,48 @@
  */
 #pragma once
 
+// For Davinci board, saw table of potentiometer values at https://www.thingiverse.com/groups/da-vinci/forums/general/topic:5168#comment-818408. Converted those to table.  Plotted them and fit the following curve:
+// beta=4400; r0=135000; t0=(25 + 273.15); unset yrange; set xrange [ 180 : 280 ]; plot "~/tmp/ohms-vs-temp" using 2:1, (r0 * exp(beta * ((1/(x + 273.15)) - (1/t0))))
+// Hotend
+// C  thermistor voltage (ohms)
+// 100 1.968 (6131)
+// 140 1.050 (2193)
+// 160 0.731 (1337)
+// That seems to correspond to the chart
+
+//
+// For bed thermistor saw the following, meaasured at ambient 66F
+// Ohms = V * 4.7k / (3.3 - V)
+// Reported C      k-type therm mV (degC)         sensor voltage PA1 (equivalent ohms)
+//   22.66             0.04                               3.2638   (423753) 
+//   31                0.05    (21)                       3.2513   (313780)
+//   45                1.34    (52)                       3.2116   (170752)
+//   50                1.43    (54)                       3.1962   (144721)
+//   60                1.93    (66)                       3.1526   (100523)
+//   70                2.54    (81)                       3.0956   ( 71180)
+
+// Ambient 67F, 19.4C (0.78mv)
+// Dracal-C   V (Ohms)   k-type mV (tempC)
+// 18.8    3.2631 (415625)  0   
+// 24.0    3.2567 (353498) 0.15 0.19 (was 0.25)  (23.5)
+// 29.6    3.2499 (304880) ( 0.42 (WAS 0.45)  (31)
+// 37.2    3.2379 (245058)  0.77  (38.5)
+// 49.2    3.2130 (173575)  1.29 (51.0)
+// 58.2    3.1875 (133166)  1.64 (59.5)
+// 67.3    3.1506 (99115)  2.08  (70.3)
+// 72.4    3.1240 (83425)  2.27 (75)
+// Fitting a curve to that produces beta=3400, r0=430000
+
+
+
+
+//
+// To test, can use equation: T = 1 / ( 1/T0 + 1/B * ln( R / R0 ) )
+// E.g.,
+//   r = 71180 ; b = 3950 ; r0 = 400000; t0 = 273.15 + 25 ; 1 / ( 1/t0 + 1/b * Math.log( r / r0 ) ) - 273.15
+//
+
+
 /**
  * Configuration.h
  *
@@ -69,7 +111,8 @@
 // @section info
 
 // Author info of this build printed to the host during boot and M115
-#define STRING_CONFIG_H_AUTHOR "(Josh, config1)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "(Josh, config2)" // Who made the changes.
+#define STRING_DISTRIBUTION_DATE "jrecently-2021-12-25"
 //#define CUSTOM_VERSION_FILE Version.h // Path from the root directory (no quotes)
 
 /**
@@ -486,7 +529,7 @@
  *   999 : Dummy Table that ALWAYS reads 100°C or the temperature defined below.
  *
  */
-#define TEMP_SENSOR_0 5
+#define TEMP_SENSOR_0 1000
 #define TEMP_SENSOR_1 0
 #define TEMP_SENSOR_2 0
 #define TEMP_SENSOR_3 0
@@ -582,6 +625,7 @@
 // PID Tuning Guide here: https://reprap.org/wiki/PID_Tuning
 
 // Comment the following line to disable PID and enable bang-bang.
+// For Davinci, hot-end resistor is 30-ohms.
 #define PIDTEMP
 #define BANG_MAX 255     // Limits current to nozzle while in bang-bang mode; 255=full current
 #define PID_MAX BANG_MAX // Limits current to nozzle while PID is active (see PID_FUNCTIONAL_RANGE below); 255=full current
@@ -623,7 +667,7 @@
  * heater. If your configuration is significantly different than this and you don't understand
  * the issues involved, don't use bed PID until someone else verifies that your hardware works.
  */
-//#define PIDTEMPBED
+#define PIDTEMPBED
 
 //#define BED_LIMIT_SWITCHING
 
@@ -633,7 +677,9 @@
  * When set to any value below 255, enables a form of PWM to the bed that acts like a divider
  * so don't use it unless you are OK with PWM on your bed. (See the comment on enabling PIDTEMPBED)
  */
-#define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
+// For davinci, +12v is 15A, and bed resistance is 1-ohm, so 212 should limit current to about 10A for the bed.
+// Actually, 148 should limit to 7A
+#define MAX_BED_POWER 212 // limits duty cycle to bed; 255=full current
 
 #if ENABLED(PIDTEMPBED)
   //#define MIN_BED_POWER 0
@@ -641,9 +687,9 @@
 
   // 120V 250W silicone heater into 4mm borosilicate (MendelMax 1.5+)
   // from FOPDT model - kp=.39 Tp=405 Tdead=66, Tc set to 79.2, aggressive factor of .15 (vs .1, 1, 10)
-  #define DEFAULT_bedKp 10.00
-  #define DEFAULT_bedKi .023
-  #define DEFAULT_bedKd 305.4
+#define DEFAULT_bedKp 30.67 // 24.65 // 42.63 // 10.00
+#define DEFAULT_bedKi 5.81 // 4.74 // 8.33 // .023
+#define DEFAULT_bedKd 107.94 // 85.45 // 145.51 // 305.4
 
   // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
 #endif // PIDTEMPBED
@@ -693,7 +739,7 @@
 #endif // PIDTEMPCHAMBER
 
 #if ANY(PIDTEMP, PIDTEMPBED, PIDTEMPCHAMBER)
-  //#define PID_DEBUG             // Sends debug data to the serial port. Use 'M303 D' to toggle activation.
+  #define PID_DEBUG             // Sends debug data to the serial port. Use 'M303 D' to toggle activation.
   //#define PID_OPENLOOP          // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
   //#define SLOW_PWM_HEATERS      // PWM with very low frequency (roughly 0.125Hz=8s) and minimum state time of approximately 1s useful for heaters driven by a relay
   #define PID_FUNCTIONAL_RANGE 10 // If the temperature difference between the target temperature and the actual temperature
@@ -927,7 +973,7 @@
  * Override with M92
  *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160, 160, 5150, 220 }
+#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 2559, 220 } // 160, 160, 5150, 220 }
 
 /**
  * Default Max Feed Rate (mm/s)
@@ -1383,11 +1429,11 @@
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define X_MIN_POS -33
-#define Y_MIN_POS 0
+#define Y_MIN_POS -10
 #define Z_MIN_POS 0
-#define X_MAX_POS 237 // X_BED_SIZE
-#define Y_MAX_POS 217 // Y_BED_SIZE
-#define Z_MAX_POS 202 // 200
+#define X_MAX_POS X_BED_SIZE // 237
+#define Y_MAX_POS Y_BED_SIZE // 217
+#define Z_MAX_POS 200 // 202
 //#define I_MIN_POS 0
 //#define I_MAX_POS 50
 //#define J_MIN_POS 0
@@ -2900,6 +2946,11 @@
  */
 //#define RGB_LED
 //#define RGBW_LED
+
+
+#define CASE_LIGHT_ENABLE
+#define CASE_LIGHT_PIN (NEOPIXEL_PIN) // From pins/stm32f4/pins_BTT_SKR_V2_0_common.h
+//#defin CASELIGHT_USES_BRIGHTNESS  defined in feature/caselight.h
 
 #if EITHER(RGB_LED, RGBW_LED)
   //#define RGB_LED_R_PIN 34

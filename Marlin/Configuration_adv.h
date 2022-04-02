@@ -55,8 +55,8 @@
 //
 #if TEMP_SENSOR_0 == 1000
   #define HOTEND0_PULLUP_RESISTOR_OHMS 4700    // Pullup resistor
-  #define HOTEND0_RESISTANCE_25C_OHMS  100000  // Resistance at 25C
-  #define HOTEND0_BETA                 3950    // Beta value
+  #define HOTEND0_RESISTANCE_25C_OHMS  135000  // Resistance at 25C
+  #define HOTEND0_BETA                 4400    // Beta value
 #endif
 
 #if TEMP_SENSOR_1 == 1000
@@ -103,8 +103,8 @@
 
 #if TEMP_SENSOR_BED == 1000
   #define BED_PULLUP_RESISTOR_OHMS     4700    // Pullup resistor
-  #define BED_RESISTANCE_25C_OHMS      400000  // Resistance at 25C
-  #define BED_BETA                     3950    // Beta value
+  #define BED_RESISTANCE_25C_OHMS      430000  // Resistance at 25C
+  #define BED_BETA                     3400    // Beta value
 #endif
 
 #if TEMP_SENSOR_CHAMBER == 1000
